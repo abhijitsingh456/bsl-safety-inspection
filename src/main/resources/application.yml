@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: inspection
+
+  profiles:
+    active: local
+
+  servlet:
+    multipart:
+      max-file-size: 20 MB
+      max-request-size: 50 MB
+
+server:
+  port: 8080
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
