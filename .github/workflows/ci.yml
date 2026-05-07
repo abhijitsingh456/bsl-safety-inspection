@@ -57,7 +57,7 @@ jobs:
 
       # Publish test results so you can see them in Github UI
       - name: Publish
-        uses: dorny/test-report@v1
+        uses: dorny/test-reporter@v1
         if: always()
         with:
           name: JUnit Test results
