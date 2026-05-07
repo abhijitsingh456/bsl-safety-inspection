@@ -55,15 +55,6 @@ jobs:
         run:
           mvn test --batch-mode
 
-      # Publish test results so you can see them in Github UI
-      - name: Publish
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: JUnit Test results
-          path: target/surefire-reports/*.xml
-          reporter: java-junit
-
       # Upload test results as downloadable artifacts
       - name: Upload test report
         uses: actions/upload-artifact@v4
