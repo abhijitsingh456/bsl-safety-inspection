@@ -21,12 +21,12 @@ jobs:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
         ports:
-          5432:5432
+          [5432]
 
       rabbitmq:
         image: rabbitmq:3-management
         ports:
-          5672:5672
+          [5672]
 
     steps:
       - name: Checkout code
@@ -49,9 +49,9 @@ jobs:
           SPRING_RABBITMQ_HOST: localhost
           SPRING_RABBITMQ_PORT: 5672
           # Secrets stored in github
-          CLOUDINARY_CLOUD_NAME: ${{ CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ CLOUDINARY_API_SECRET }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run:
           mvn test --batch-mode
 
