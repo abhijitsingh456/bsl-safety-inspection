@@ -14,15 +14,22 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.Pageable;
+
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +58,38 @@ public class InspectionObservationServiceImplTest {
     private InspectionObservationRequest request;
     private InspectionObservationEntity savedEntity;
 
+    private InspectionObservationEntity buildEntity(UUID id) {
+        InspectionObservationEntity entity = new InspectionObservationEntity();
+        entity.setObservationId(id);
+        entity.setUserId(UUID.randomUUID());
+        entity.setInspectionDate(LocalDate.of(2024, 1, 15));
+        entity.setCategory("Safety");
+        entity.setDepartment("Engineering");
+        entity.setSubDepartment("Mechanical");
+        entity.setLocation("Plant A");
+        entity.setObservation("Fire extinguisher missing");
+        entity.setComplianceStatus("NON_COMPLIANT");
+        entity.setTargetDate(LocalDate.of(2024, 2, 15));
+        entity.setToBeIncludedInDispatcher("YES");
+        entity.setRecommendations("Replace immediately");
+        entity.setDiscussedWith("Site Manager");
+        entity.setInspectionPhotoUrl(List.of("https://cloudinary.com/photo1.jpg"));
+        entity.setCompliedPhotoUrl(List.of("https://cloudinary.com/complied1.jpg"));
+        entity.setPhotoUploadStatus("PENDING_UPLOAD");
+        entity.setIsDeleted(Boolean.FALSE);
+        entity.setObservationHash("dummy-hash-123");
+        entity.setCreatedAt(Instant.now());
+        entity.setUpdatedAt(Instant.now());
+        return entity;
+    }
+
+    private Page<InspectionObservationEntity> buildPage(
+            List<InspectionObservationEntity> entities,
+            Pageable pageable,
+            long totalElements) {
+        return new PageImpl<>(entities, pageable, totalElements);
+    }
+
     @BeforeEach
     void setUp(){
 
@@ -62,6 +101,8 @@ public class InspectionObservationServiceImplTest {
         request.setCategory("General");
         request.setSubDepartment("BF-3");
         request.setComplianceStatus("Pending");
+        request.setToBeIncludedInDispatcher("YES");
+        request.setRecommendations("Dust to be cleaned");
         request.setTargetDate(LocalDate.of(2025,5,10));
 
         savedEntity = new InspectionObservationEntity();
@@ -75,6 +116,8 @@ public class InspectionObservationServiceImplTest {
         savedEntity.setSubDepartment(request.getSubDepartment());
         savedEntity.setComplianceStatus(request.getComplianceStatus());
         savedEntity.setTargetDate(request.getTargetDate());
+        savedEntity.setToBeIncludedInDispatcher(request.getToBeIncludedInDispatcher());
+        savedEntity.setRecommendations(request.getRecommendations());
         savedEntity.setPhotoUploadStatus("PENDING");
         savedEntity.setIsDeleted(Boolean.FALSE);
 
@@ -414,7 +457,247 @@ public class InspectionObservationServiceImplTest {
         assertThat(response.getObservationId()).isEqualTo(savedEntity.getObservationId());
         assertThat(response.getDepartment()).isEqualTo(savedEntity.getDepartment());
         assertThat(response.getLocation()).isEqualTo(savedEntity.getLocation());
+        assertThat(response.getToBeIncludedInDispatcher()).isEqualTo(savedEntity.getToBeIncludedInDispatcher());
+        assertThat(response.getRecommendations()).isEqualTo(savedEntity.getRecommendations());
         assertThat(response.getPhotoUploadStatus()).isEqualTo(savedEntity.getPhotoUploadStatus());
 
     }
+
+    // -----------------------------------------------------------------------
+    // findInspectionObservation() TESTS
+    // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Should return paginated results when all filters are provided")
+    void shouldReturnPaginatedResultsWhenAllFiltersProvided(){
+
+        //Arrange
+        Pageable pageable = PageRequest.of(0,25);
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+
+        List<InspectionObservationEntity> entityList = List.of(buildEntity(id1), buildEntity(id2));
+        Page<InspectionObservationEntity> entityPage = buildPage(entityList, pageable, 2);
+
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(entityPage);
+
+        //Act
+        Page<InspectionObservationResponse> result = service.findInspectionObservation(
+                List.of("Engineering"),
+                List.of("Safety"),
+                List.of("NON_COMPLIANT"),
+                LocalDate.of(2024, 1, 1),
+                LocalDate.of(2024, 1, 31),
+                LocalDate.of(2024, 2, 1),
+                LocalDate.of(2024, 2, 28),
+                null,
+                pageable
+        );
+
+        // Assert
+        assertThat(result.getContent().size()).isEqualTo(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Should normalize empty department list to null")
+    void shouldNormalizeEmptyDepartmentToNull() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(), pageable, 0));
+
+        ArgumentCaptor<List<String>> departmentCaptor = ArgumentCaptor.forClass(List.class);
+
+        // Act
+        service.findInspectionObservation(
+                List.of(),  // empty → should become null
+                null, null, null, null, null, null, null, pageable
+        );
+
+        // Assert
+        verify(inspectionObservationRepository).searchObservations(
+                departmentCaptor.capture(),
+                any(), any(), any(), any(), any(), any(), any()
+        );
+        assertThat(departmentCaptor.getValue()).isNull();
+    }
+
+
+    @Test
+    @DisplayName("Should normalize empty category list to null")
+    void shouldNormalizeEmptyCategoryToNull() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(), pageable, 0));
+
+        ArgumentCaptor<List<String>> categoryCaptor = ArgumentCaptor.forClass(List.class);
+
+        // Act
+        service.findInspectionObservation(
+                null,
+                List.of(),  // empty → should become null
+                null, null, null, null, null, null, pageable
+        );
+
+        // Assert
+        verify(inspectionObservationRepository).searchObservations(
+                any(),
+                categoryCaptor.capture(),
+                any(), any(), any(), any(), any(), any()
+        );
+        assertThat(categoryCaptor.getValue()).isNull();
+    }
+
+
+    @Test
+    @DisplayName("Should normalize empty complianceStatus list to null")
+    void shouldNormalizeEmptyComplianceStatusToNull() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(), pageable, 0));
+
+        ArgumentCaptor<List<String>> complianceCaptor = ArgumentCaptor.forClass(List.class);
+
+        // Act
+        service.findInspectionObservation(
+                null, null,
+                List.of(),  // empty → should become null
+                null, null, null, null, null, pageable
+        );
+
+        // Assert
+        verify(inspectionObservationRepository).searchObservations(
+                any(), any(),
+                complianceCaptor.capture(),
+                any(), any(), any(), any(), any()
+        );
+        assertThat(complianceCaptor.getValue()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should pass date parameters directly to repository")
+    void shouldPassDateParametersToRepository() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(), pageable, 0));
+
+        LocalDate inspectionStart = LocalDate.of(2024, 1, 1);
+        LocalDate inspectionEnd   = LocalDate.of(2024, 1, 31);
+        LocalDate targetStart     = LocalDate.of(2024, 2, 1);
+        LocalDate targetEnd       = LocalDate.of(2024, 2, 28);
+
+        ArgumentCaptor<LocalDate> inspectionStartCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> inspectionEndCaptor   = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> targetStartCaptor     = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> targetEndCaptor       = ArgumentCaptor.forClass(LocalDate.class);
+
+        // Act
+        service.findInspectionObservation(
+                null, null, null,
+                inspectionStart, inspectionEnd,
+                targetStart, targetEnd,
+                null, pageable
+        );
+
+        // Assert
+        verify(inspectionObservationRepository).searchObservations(
+                any(), any(), any(),
+                inspectionStartCaptor.capture(),
+                inspectionEndCaptor.capture(),
+                targetStartCaptor.capture(),
+                targetEndCaptor.capture(),
+                any()
+        );
+        assertThat(inspectionStartCaptor.getValue()).isEqualTo(inspectionStart);
+        assertThat(inspectionEndCaptor.getValue()).isEqualTo(inspectionEnd);
+        assertThat(targetStartCaptor.getValue()).isEqualTo(targetStart);
+        assertThat(targetEndCaptor.getValue()).isEqualTo(targetEnd);
+    }
+
+
+    @Test
+    @DisplayName("Should map entity fields to response correctly")
+    void shouldMapEntityFieldsToResponseCorrectly() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        InspectionObservationEntity entity = buildEntity(UUID.randomUUID());
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(entity), pageable, 1));
+
+        // Act
+        Page<InspectionObservationResponse> result = service.findInspectionObservation(
+                null, null, null, null, null, null, null, null, pageable
+        );
+
+        // Assert
+        InspectionObservationResponse response = result.getContent().get(0);
+        assertThat(response.getObservationId()).isEqualTo(entity.getObservationId());
+        assertThat(response.getDepartment()).isEqualTo(entity.getDepartment());
+        assertThat(response.getCategory()).isEqualTo(entity.getCategory());
+        assertThat(response.getComplianceStatus()).isEqualTo(entity.getComplianceStatus());
+    }
+
+
+    @Test
+    @DisplayName("Should return empty page when repository returns no results")
+    void shouldReturnEmptyPageWhenNoResults() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(buildPage(List.of(), pageable, 0));
+
+        // Act
+        Page<InspectionObservationResponse> result = service.findInspectionObservation(
+                null, null, null, null, null, null, null, null, pageable
+        );
+
+        // Assert
+        assertThat(result.getContent().size()).isEqualTo(0);
+        assertThat(result.getTotalElements()).isZero();
+        assertThat(result.getTotalPages()).isZero();
+    }
+
+
+    @Test
+    @DisplayName("Should return correct page metadata for multi-page results")
+    void shouldReturnCorrectPageMetadata() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 5);
+        List<InspectionObservationEntity> entities = List.of(
+                buildEntity(UUID.randomUUID()), buildEntity(UUID.randomUUID()), buildEntity(UUID.randomUUID()),
+                buildEntity(UUID.randomUUID()), buildEntity(UUID.randomUUID())
+        );
+        // 5 results on this page, 23 total across all pages
+        Page<InspectionObservationEntity> entityPage = buildPage(entities, pageable, 23);
+
+        when(inspectionObservationRepository.searchObservations(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(entityPage);
+
+        // Act
+        Page<InspectionObservationResponse> result = service.findInspectionObservation(
+                null, null, null, null, null, null, null, null, pageable
+        );
+
+        // Assert
+        assertThat(result.getContent().size()).isEqualTo(5);
+        assertThat(result.getTotalElements()).isEqualTo(23);
+        assertThat(result.getTotalPages()).isEqualTo(5);  // ceil(23/5)
+        assertThat(result.getNumber()).isEqualTo(0);
+        assertThat(result.isFirst()).isTrue();
+        assertThat(result.isLast()).isFalse();
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.bsl_safety.inspection.dto.requestDTO;
 
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -27,4 +28,8 @@ public class InspectionObservationRequest {
 
     private LocalDate targetDate;
 
+    @NotBlank
+    private String toBeIncludedInDispatcher;
+
+    private String recommendations;
 }

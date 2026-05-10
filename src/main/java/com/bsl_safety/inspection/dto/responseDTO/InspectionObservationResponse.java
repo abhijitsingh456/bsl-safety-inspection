@@ -23,6 +23,8 @@ public class InspectionObservationResponse {
     private List<String> observationPhotoUrl;
     private List<String> compliedPhotoUrl;
     private String photoUploadStatus;
+    private String toBeIncludedInDispatcher;
+    private String recommendations;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -29,7 +29,7 @@ public class InspectionObservationEntity {
     @Column(name="userId")
     private UUID userId;
 
-    @Column(name="date", nullable = false)
+    @Column(name="inspectionDate", nullable = false)
     private LocalDate inspectionDate;
 
     @Column(name="category", nullable = false)
@@ -44,7 +44,7 @@ public class InspectionObservationEntity {
     @Column(name="location")
     private String location;
 
-    @Column(name="observation")
+    @Column(name="observation", columnDefinition = "TEXT")
     private String observation;
 
     @Column(name="complianceStatus")
@@ -52,6 +52,15 @@ public class InspectionObservationEntity {
 
     @Column(name="targetDate")
     private LocalDate targetDate;
+
+    @Column(name="toBeIncludedInDispatcher")
+    private String toBeIncludedInDispatcher;
+
+    @Column(name="recommendations", columnDefinition = "TEXT")
+    private String recommendations;
+
+    @Column(name="discussedWith")
+    private String discussedWith;
 
     @Column(name="inspectionPhotoUrl")
     @JdbcTypeCode(SqlTypes.ARRAY)
@@ -67,10 +76,10 @@ public class InspectionObservationEntity {
     @Column(name = "isDeleted")
     private Boolean isDeleted;
 
-    @Column(name="created_at", nullable = false, updatable = false)
+    @Column(name="createdAt", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name="updated_at")
+    @Column(name="updatedAt")
     private Instant updatedAt;
 
     @Column(name="observation_hash")

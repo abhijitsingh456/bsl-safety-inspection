@@ -14,12 +14,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -61,6 +67,8 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         observation.setObservation(request.getObservation());
         observation.setComplianceStatus(request.getComplianceStatus());
         observation.setTargetDate(request.getTargetDate());
+        observation.setToBeIncludedInDispatcher(request.getToBeIncludedInDispatcher());
+        observation.setRecommendations(request.getRecommendations());
         observation.setPhotoUploadStatus("PENDING_UPLOAD");
         observation.setIsDeleted(Boolean.FALSE);
         observation.setObservationHash(hash);
@@ -87,18 +95,34 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         return createResponse(observationSaved);
     }
 
-    private List<byte[]> convertToBytes(List<MultipartFile> files){
-        if(files==null || files.isEmpty()){
-            return Collections.emptyList();
-        }
+    @Override
+    public Page<InspectionObservationResponse> findInspectionObservation(List<String> department,
+                                                                         List<String> category,
+                                                                         List<String> complianceStatus,
+                                                                         LocalDate inspectionStartDate,
+                                                                         LocalDate inspectionEndDate,
+                                                                         LocalDate targetStartDate,
+                                                                         LocalDate targetEndDate,
+                                                                         LocalDate updatedOn,
+                                                                         Pageable pageable){
 
-        return  files.stream().map(file -> {
-            try{
-                return file.getBytes();
-            }catch (IOException e){
-                throw new RuntimeException("Failed to read file bytes", e);
-            }
-        }).toList();
+        //Normalize empty lists to null so the SQL query 'IS NULL' check works perfectly
+        category = (category != null && category.isEmpty()) ? null : category;
+        complianceStatus = (complianceStatus != null && complianceStatus.isEmpty()) ? null : complianceStatus;
+        department = (department != null && department.isEmpty()) ? null : department;
+
+
+        Page<InspectionObservationEntity> entities = inspectionObservationRepository.
+                searchObservations(department,
+                        category,
+                        complianceStatus,
+                        inspectionStartDate,
+                        inspectionEndDate,
+                        targetStartDate,
+                        targetEndDate,
+                        pageable);
+
+        return entities.map(this::createResponse);
     }
 
     private List<String> saveToTempFile(List<MultipartFile> files){
@@ -129,6 +153,8 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         response.setObservation(observation.getObservation());
         response.setComplianceStatus(observation.getComplianceStatus());
         response.setTargetDate(observation.getTargetDate());
+        response.setToBeIncludedInDispatcher(observation.getToBeIncludedInDispatcher());
+        response.setRecommendations(observation.getRecommendations());
         response.setObservationPhotoUrl(observation.getInspectionPhotoUrl());
         response.setCompliedPhotoUrl(observation.getCompliedPhotoUrl());
         response.setPhotoUploadStatus(observation.getPhotoUploadStatus());
