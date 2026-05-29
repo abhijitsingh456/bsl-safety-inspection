@@ -9,6 +9,7 @@ import com.bsl_safety.inspection.exception.DataIntegrityException;
 import com.bsl_safety.inspection.repository.InspectionObservationRepository;
 import com.bsl_safety.inspection.service.CloudinaryUploadService;
 import com.bsl_safety.inspection.service.InspectionObservationService;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,6 +46,15 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
 
     @Value("${upload-directory}")
     String uploadDir;
+
+    @PostConstruct
+    public void init() {
+        File dir = new File(uploadDir);
+        if (!dir.exists()) {
+            dir.mkdirs();       // creates the folder if it doesn't exist
+        }
+    }
+
 
     @Override
     public InspectionObservationResponse createInspectionObservation(InspectionObservationRequest request,
