@@ -5,6 +5,10 @@ spring:
     password: safety
     driver-class-name: org.postgresql.Driver
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
   rabbitmq:
     host: localhost
     port: 5672
@@ -20,9 +24,9 @@ spring:
           max-attempts: 3
           initial-interval: 2000
 
-  jpa:
-    hibernate:
-      ddl-auto: update
+
 
 cloudinary:
   asset-folder: test
+
+upload-directory: /Users/abhijit/codes/inspection/uploads

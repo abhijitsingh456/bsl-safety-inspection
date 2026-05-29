@@ -1,2 +1,17 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  rabbitmq:
+    addresses: ${RABBITMQ_URL}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+upload-directory: ${APP_UPLOAD_DIR}
+
 cloudinary:
   asset-folder: prod

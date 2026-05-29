@@ -23,13 +23,13 @@ public class InspectionObservationEntity {
 
     @Id
     @GeneratedValue
-    @Column(name="observationId")
+    @Column(name="observation_id")
     private UUID observationId;
 
-    @Column(name="userId")
+    @Column(name="user_id")
     private UUID userId;
 
-    @Column(name="inspectionDate", nullable = false)
+    @Column(name="inspection_date", nullable = false)
     private LocalDate inspectionDate;
 
     @Column(name="category", nullable = false)
@@ -47,39 +47,39 @@ public class InspectionObservationEntity {
     @Column(name="observation", columnDefinition = "TEXT")
     private String observation;
 
-    @Column(name="complianceStatus")
+    @Column(name="compliance_status")
     private String complianceStatus;
 
-    @Column(name="targetDate")
+    @Column(name="target_date")
     private LocalDate targetDate;
 
-    @Column(name="toBeIncludedInDispatcher")
+    @Column(name="to_be_included_in_dispatcher")
     private String toBeIncludedInDispatcher;
 
     @Column(name="recommendations", columnDefinition = "TEXT")
     private String recommendations;
 
-    @Column(name="discussedWith")
+    @Column(name="discussed_with")
     private String discussedWith;
 
-    @Column(name="inspectionPhotoUrl")
+    @Column(name="inspection_photo_url")
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> inspectionPhotoUrl;
 
-    @Column(name="compliedPhotoUrl")
+    @Column(name="complied_photo_url")
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> compliedPhotoUrl;
 
-    @Column(name="photoUploadStatus")
+    @Column(name="photo_upload_status")
     private String photoUploadStatus;
 
-    @Column(name = "isDeleted")
+    @Column(name = "is_deleted")
     private Boolean isDeleted;
 
-    @Column(name="createdAt", nullable = false, updatable = false)
+    @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name="updatedAt")
+    @Column(name="updated_at")
     private Instant updatedAt;
 
     @Column(name="observation_hash")

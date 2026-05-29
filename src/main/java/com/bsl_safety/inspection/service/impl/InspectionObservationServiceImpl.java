@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -39,6 +41,9 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
     private final InspectionObservationRepository inspectionObservationRepository;
     private final CloudinaryUploadService cloudinaryUploadService;
     private final AmqpTemplate amqpTemplate;
+
+    @Value("${upload-directory}")
+    String uploadDir;
 
     @Override
     public InspectionObservationResponse createInspectionObservation(InspectionObservationRequest request,
@@ -126,13 +131,14 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
     }
 
     private List<String> saveToTempFile(List<MultipartFile> files){
+
         if(files==null || files.isEmpty()){
             return Collections.emptyList();
         }
 
         return files.stream().map(file->{
           try{
-              Path tempFile = Files.createTempFile("upload","_"+file.getOriginalFilename());
+              Path tempFile = Paths.get(uploadDir, UUID.randomUUID() + "_" + file.getOriginalFilename());
               file.transferTo(tempFile.toFile());
               return tempFile.toAbsolutePath().toString();
           } catch (IOException e) {

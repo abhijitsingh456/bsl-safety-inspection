@@ -20,11 +20,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.data.domain.Pageable;
@@ -92,6 +94,8 @@ public class InspectionObservationServiceImplTest {
 
     @BeforeEach
     void setUp(){
+
+        ReflectionTestUtils.setField(service, "uploadDir", "uploads");
 
         request = new InspectionObservationRequest();
         request.setInspectionDate(LocalDate.of(2025, 5,1));
@@ -340,6 +344,7 @@ public class InspectionObservationServiceImplTest {
     @Test
     @DisplayName("Should create temp file and include paths in RabbitMQ message")
     void shouldCreateTempFileAndIncludeInRabbitMqMessage(){
+
         //Arrange
         when(inspectionObservationRepository.existsByObservationHash(anyString()))
                 .thenReturn(false);
@@ -372,7 +377,6 @@ public class InspectionObservationServiceImplTest {
         List<String> paths = messageCaptor.getValue().getInspectionPhotoPaths();
 
         assertThat(paths.size()).isEqualTo(1);
-        assertThat(paths.get(0)).contains("upload"); //temp file prefix
         assertThat(paths.get(0)).contains("inspection1.jpg"); //original file name
 
     }
