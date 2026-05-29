@@ -33,3 +33,5 @@ spring:
 
 cloudinary:
   asset-folder: test
+
+upload-directory: ${UPLOAD_DIR}

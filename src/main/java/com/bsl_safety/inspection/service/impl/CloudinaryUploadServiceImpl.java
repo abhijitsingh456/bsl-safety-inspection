@@ -5,6 +5,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,6 +23,9 @@ public class CloudinaryUploadServiceImpl implements CloudinaryUploadService {
 
     private final Cloudinary cloudinary;
 
+    @Value("${cloudinary.asset-folder}")
+    private String cloudinaryAssetFolder;
+
     @Override
     public List<String> uploadFromPaths(List<String> photoPaths) throws IOException {
 
@@ -32,7 +36,7 @@ public class CloudinaryUploadServiceImpl implements CloudinaryUploadService {
                 Map uploadResult = cloudinary.uploader().upload(
                         Files.readAllBytes(Paths.get(path)),
                         ObjectUtils.asMap(
-                                "asset_folder","${cloudinary.asset-folder}",
+                                "asset_folder",cloudinaryAssetFolder,
                                 "use_filename",true,
                                 "unique_filename",true
                         )
