@@ -94,8 +94,9 @@ public class InspectionObservationServiceImplTest {
 
     @BeforeEach
     void setUp(){
-
+        
         ReflectionTestUtils.setField(service, "uploadDir", "uploads");
+        service.init();
 
         request = new InspectionObservationRequest();
         request.setInspectionDate(LocalDate.of(2025, 5,1));
@@ -124,6 +125,7 @@ public class InspectionObservationServiceImplTest {
         savedEntity.setRecommendations(request.getRecommendations());
         savedEntity.setPhotoUploadStatus("PENDING");
         savedEntity.setIsDeleted(Boolean.FALSE);
+
 
     }
 
