@@ -94,7 +94,7 @@ public class InspectionObservationServiceImplTest {
 
     @BeforeEach
     void setUp(){
-        
+
         ReflectionTestUtils.setField(service, "uploadDir", "uploads");
         service.init();
 
