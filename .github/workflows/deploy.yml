@@ -31,29 +31,43 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "target/*.jar"
-          target: "/opt/sailbslsafety/"
+          target: "/tmp/sailbslsafety-deploy/"
           strip_components: 1
 
       - name: SSH and restart app
         uses: appleboy/ssh-action@v1.0.3
         with:
-            host: ${{ secrets.EC2_PRODUCTION_HOST }}
-            username: ${{ secrets.EC2_USER }}
-            key: ${{ secrets.EC2_SSH_KEY }}
-            script: |
-              mv /opt/sailbslsafety/*.jar /opt/sailbslsafety/app.jar 2>/dev/null || true
-              sudo systemctl restart sailbslsafety
-              
-              echo "Waiting for app to start..."
-              for i in $(seq 1 24); do
-                if curl -sf http://localhost:8080/actuator/health > /dev/null; then
-                  echo "App is up after ~$((i * 5)) seconds"
-                  exit 0
-                fi
-                echo "Attempt $i/24 failed, retrying in 5s..."
-                sleep 5
-              done
-              
-              echo "App failed to start after 120 seconds"
-              sudo journalctl -u sailbslsafety --since "2 minutes ago" --no-pager
+          host: ${{ secrets.EC2_PRODUCTION_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            
+            # Find the freshly-uploaded jar (there will be exactly one)
+            NEW_JAR=$(ls /tmp/sailbslsafety-deploy/*.jar | head -n 1)
+            if [ -z "$NEW_JAR" ]; then
+              echo "::error::No JAR was uploaded"
               exit 1
+            fi
+            echo "New JAR: $NEW_JAR"
+            
+            # Atomic swap into place
+            sudo mv -f "$NEW_JAR" /opt/sailbslsafety/app.jar
+            rm -rf /tmp/sailbslsafety-deploy
+            
+            # Restart
+            sudo systemctl restart sailbslsafety
+            
+            echo "Waiting for app to start..."
+            for i in $(seq 1 24); do
+              if curl -sf http://localhost:8080/actuator/health > /dev/null; then
+                echo "App is up after ~$((i * 5)) seconds"
+                exit 0
+              fi
+              echo "Attempt $i/24 failed, retrying in 5s..."
+              sleep 5
+            done
+            
+            echo "::error::App failed to start after 120 seconds"
+            sudo journalctl -u sailbslsafety --since "2 minutes ago" --no-pager
+            exit 1
