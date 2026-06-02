@@ -13,10 +13,10 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/**")
+                registry.addMapping("/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
-                                "https://sailbslsafety.in",
+                                "https://www.sailbslsafety.in",
                                 "https://sailbslsafety.vercel.app",        // production frontend
                                 "http://localhost:3000"               // local dev
                         )
