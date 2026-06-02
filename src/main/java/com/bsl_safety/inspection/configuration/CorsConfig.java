@@ -15,10 +15,12 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
-                                "https://your-app.vercel.app",        // production frontend
+                                "http://localhost:5173",
+                                "https://sailbslsafety.in",
+                                "https://sailbslsafety.vercel.app",        // production frontend
                                 "http://localhost:3000"               // local dev
                         )
-                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }
         };
