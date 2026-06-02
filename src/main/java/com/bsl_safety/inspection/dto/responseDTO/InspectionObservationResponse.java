@@ -20,6 +20,7 @@ public class InspectionObservationResponse {
     private String observation;
     private String complianceStatus;
     private LocalDate targetDate;
+    private String discussedWith;
     private List<String> observationPhotoUrl;
     private List<String> compliedPhotoUrl;
     private String photoUploadStatus;

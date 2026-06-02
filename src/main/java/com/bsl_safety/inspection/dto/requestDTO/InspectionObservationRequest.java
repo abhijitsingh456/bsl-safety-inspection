@@ -28,6 +28,8 @@ public class InspectionObservationRequest {
 
     private LocalDate targetDate;
 
+    private String discussedWith;
+
     @NotBlank
     private String toBeIncludedInDispatcher;
 

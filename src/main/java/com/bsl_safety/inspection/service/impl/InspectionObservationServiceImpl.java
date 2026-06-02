@@ -83,6 +83,7 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         observation.setObservation(request.getObservation());
         observation.setComplianceStatus(request.getComplianceStatus());
         observation.setTargetDate(request.getTargetDate());
+        observation.setDiscussedWith(request.getDiscussedWith());
         observation.setToBeIncludedInDispatcher(request.getToBeIncludedInDispatcher());
         observation.setRecommendations(request.getRecommendations());
         observation.setPhotoUploadStatus("PENDING_UPLOAD");
@@ -170,6 +171,7 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         response.setObservation(observation.getObservation());
         response.setComplianceStatus(observation.getComplianceStatus());
         response.setTargetDate(observation.getTargetDate());
+        response.setDiscussedWith(observation.getDiscussedWith());
         response.setToBeIncludedInDispatcher(observation.getToBeIncludedInDispatcher());
         response.setRecommendations(observation.getRecommendations());
         response.setObservationPhotoUrl(observation.getInspectionPhotoUrl());
