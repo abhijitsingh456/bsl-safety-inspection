@@ -8,11 +8,20 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public interface InspectionObservationService {
     InspectionObservationResponse createInspectionObservation(InspectionObservationRequest inspectionObservationRequest,
                                                               List<MultipartFile> inspectionPhotos,
                                                               List<MultipartFile> compliedPhotos);
+
+
+    InspectionObservationResponse updateInspectionObservation(UUID observationID,
+                                                              InspectionObservationRequest inspectionObservationRequest,
+                                                              List<MultipartFile> inspectionPhotos,
+                                                              List<MultipartFile> compliedPhotos);
+
+
     Page<InspectionObservationResponse> findInspectionObservation(List<String> department,
                                                                   List<String> category,
                                                                   List<String> complianceStatus,

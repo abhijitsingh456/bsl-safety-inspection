@@ -6,6 +6,7 @@ import com.bsl_safety.inspection.dto.requestDTO.RabbitMQPhotoUploadMessage;
 import com.bsl_safety.inspection.dto.responseDTO.InspectionObservationResponse;
 import com.bsl_safety.inspection.entity.InspectionObservationEntity;
 import com.bsl_safety.inspection.exception.DataIntegrityException;
+import com.bsl_safety.inspection.exception.ResourceNotFoundException;
 import com.bsl_safety.inspection.repository.InspectionObservationRepository;
 import com.bsl_safety.inspection.service.CloudinaryUploadService;
 import com.bsl_safety.inspection.service.InspectionObservationService;
@@ -86,6 +87,8 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         observation.setDiscussedWith(request.getDiscussedWith());
         observation.setToBeIncludedInDispatcher(request.getToBeIncludedInDispatcher());
         observation.setRecommendations(request.getRecommendations());
+        observation.setInspectionPhotoUrl(List.of());
+        observation.setCompliedPhotoUrl(List.of());
         observation.setPhotoUploadStatus("PENDING_UPLOAD");
         observation.setIsDeleted(Boolean.FALSE);
         observation.setObservationHash(hash);
@@ -110,6 +113,62 @@ public class InspectionObservationServiceImpl implements InspectionObservationSe
         log.info("Photo upload message published for inspectionId={}", observationSaved.getObservationId());
 
         return createResponse(observationSaved);
+    }
+
+    @Override
+    public InspectionObservationResponse updateInspectionObservation(UUID observationId,
+                                                                     InspectionObservationRequest request,
+                                                                     List<MultipartFile> inspectionPhotos,
+                                                                     List<MultipartFile> compliedPhotos){
+
+        //stop duplicate entries
+        String raw = String.format(
+                "%s|%s|%s|%s",
+                request.getInspectionDate().toString(),
+                request.getDepartment().trim().toLowerCase(),
+                request.getLocation().trim().toLowerCase(),
+                request.getObservation().trim().toLowerCase()
+        );
+        String hash = DigestUtils.sha256Hex(raw);
+
+        InspectionObservationEntity observation = inspectionObservationRepository.findByObservationId(observationId)
+                        .orElseThrow(()->new ResourceNotFoundException("Observation Not Found"));
+
+        observation.setInspectionDate(request.getInspectionDate());
+        observation.setCategory(request.getCategory());
+        observation.setDepartment(request.getDepartment());
+        observation.setSubDepartment(request.getSubDepartment());
+        observation.setLocation(request.getLocation());
+        observation.setObservation(request.getObservation());
+        observation.setComplianceStatus(request.getComplianceStatus());
+        observation.setTargetDate(request.getTargetDate());
+        observation.setDiscussedWith(request.getDiscussedWith());
+        observation.setToBeIncludedInDispatcher(request.getToBeIncludedInDispatcher());
+        observation.setRecommendations(request.getRecommendations());
+        observation.setPhotoUploadStatus("PENDING_UPLOAD");
+        observation.setIsDeleted(Boolean.FALSE);
+        observation.setObservationHash(hash);
+        inspectionObservationRepository.save(observation);
+
+        //save photos locally in temp files, so that their paths can be sent in the RabbitMQ message
+        //This is done to avoid sending heavy actual photo bytes in RabbitMQ messages
+        List<String> inspectionPhotoPaths = saveToTempFile(inspectionPhotos);
+        List<String> compliedPhotoPaths = saveToTempFile(compliedPhotos);
+
+        //publish message to RabbitMQ
+        RabbitMQPhotoUploadMessage message = new RabbitMQPhotoUploadMessage(
+                observationId,
+                inspectionPhotoPaths,
+                compliedPhotoPaths
+        );
+        amqpTemplate.convertAndSend(
+                RabbitMQConfig.PHOTO_UPLOAD_EXCHANGE,
+                RabbitMQConfig.PHOTO_UPLOAD_ROUTING_KEY,
+                message
+        );
+        log.info("Photo upload message published for updating inspectionId={}", observationId);
+
+        return createResponse(observation);
     }
 
     @Override

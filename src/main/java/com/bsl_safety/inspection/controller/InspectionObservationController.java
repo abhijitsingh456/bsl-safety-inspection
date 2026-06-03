@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/inspection/")
@@ -31,6 +32,19 @@ public class InspectionObservationController {
 
 
         return inspectionObservationService.createInspectionObservation(inspectionObservationRequest, inspectionPhotos, compliedPhotos);
+
+    }
+
+    @PutMapping(value = "/{observationID}", consumes="multipart/form-data")
+    @ResponseStatus(HttpStatus.CREATED)
+    public InspectionObservationResponse updateInspection(@PathVariable UUID observationID,
+                                                          @Valid @RequestPart("observation") InspectionObservationRequest inspectionObservationRequest,
+                                                          @RequestPart(value = "inspection_photos", required = false) List<MultipartFile> inspectionPhotos,
+                                                          @RequestPart(value = "complied_photos", required = false) List<MultipartFile> compliedPhotos){
+
+
+
+        return inspectionObservationService.updateInspectionObservation(observationID, inspectionObservationRequest, inspectionPhotos, compliedPhotos);
 
     }
 

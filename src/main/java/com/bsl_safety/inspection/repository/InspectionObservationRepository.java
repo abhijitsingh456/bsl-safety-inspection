@@ -18,16 +18,16 @@ public interface InspectionObservationRepository extends JpaRepository<Inspectio
     Optional<InspectionObservationEntity> findByObservationId(UUID id);
 
     @Query(value = """
-        SELECT e FROM InspectionObservationEntity e
-        WHERE e.isDeleted = false
-        AND (:departments IS NULL OR e.department IN :departments)
-        AND (:categories IS NULL OR e.category IN :categories)
-        AND (:complianceStatus IS NULL OR e.complianceStatus IN :complianceStatus)
-        AND (:inspectionStartDate IS NULL OR e.inspectionDate >= :inspectionStartDate)
-        AND (:inspectionEndDate IS NULL OR e.inspectionDate <= :inspectionEndDate)
-        AND (:targetStartDate IS NULL OR e.targetDate >= :targetStartDate)
-        AND (:targetEndDate IS NULL OR e.targetDate <= :targetEndDate)
-        """)
+    SELECT e FROM InspectionObservationEntity e
+    WHERE e.isDeleted = false
+    AND (COALESCE(CAST(:departments AS text), null) IS NULL OR e.department IN :departments)
+    AND (COALESCE(CAST(:categories AS text), null) IS NULL OR e.category IN :categories)
+    AND (COALESCE(CAST(:complianceStatus AS text), null) IS NULL OR e.complianceStatus IN :complianceStatus)
+    AND (CAST(:inspectionStartDate AS date) IS NULL OR e.inspectionDate >= :inspectionStartDate)
+    AND (CAST(:inspectionEndDate AS date) IS NULL OR e.inspectionDate <= :inspectionEndDate)
+    AND (CAST(:targetStartDate AS date) IS NULL OR e.targetDate >= :targetStartDate)
+    AND (CAST(:targetEndDate AS date) IS NULL OR e.targetDate <= :targetEndDate)
+    """)
     Page<InspectionObservationEntity> searchObservations(
             @Param("departments") List<String> departments,
             @Param("categories") List<String> categories,

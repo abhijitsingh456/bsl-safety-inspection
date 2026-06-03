@@ -49,8 +49,15 @@ public class RabbitMQPhotoUploadConsumerImpl implements RabbitMQPhotoUploadConsu
             InspectionObservationEntity observation = inspectionObservationRepository.findById(message.getInspectionId())
                     .orElseThrow(()->new ResourceNotFoundException("Observation does not exist."));
 
-            observation.setInspectionPhotoUrl(inspectionPhotoUrls);
-            observation.setCompliedPhotoUrl(compliedPhotoUrls);
+
+            for(String url: inspectionPhotoUrls) {
+                observation.getInspectionPhotoUrl().add(url);
+            }
+
+            for(String url: compliedPhotoUrls){
+                observation.getCompliedPhotoUrl().add(url);
+            }
+
             observation.setPhotoUploadStatus("UPLOAD_COMPLETE");
 
             inspectionObservationRepository.save(observation);
