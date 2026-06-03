@@ -5,6 +5,9 @@ ALTER TABLE inspection_observation
     DROP CONSTRAINT chk_department;
 
 ALTER TABLE inspection_observation
+    DROP CONSTRAINT chk_compliance_status;
+
+ALTER TABLE inspection_observation
     ADD CONSTRAINT chk_category CHECK ("category" IN
                                        (
                                         'GENERAL INSPECTION',
@@ -53,5 +56,15 @@ ALTER TABLE inspection_observation
                                         'TRAFFIC',
                                         'WMD',
                                         'OTHERS'
+                                        )
+    );
+
+ALTER TABLE inspection_observation
+    ADD CONSTRAINT chk_compliance_status CHECK ("compliance_status" IN
+                                       (
+                                        'COMPLIED',
+                                        'NOT COMPLIED',
+                                        'GOOD POINT',
+                                        'NOT APPLICABLE'
                                         )
     );
