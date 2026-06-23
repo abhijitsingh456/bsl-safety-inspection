@@ -32,41 +32,57 @@ public class RabbitMQPhotoUploadConsumerImpl implements RabbitMQPhotoUploadConsu
 
         log.info("Received photo upload message for inspection id = {}", message.getInspectionId());
 
-        try{
+        try {
             List<String> inspectionPhotoUrls = new ArrayList<>();
             List<String> compliedPhotoUrls = new ArrayList<>();
 
-            if(!message.getInspectionPhotoPaths().isEmpty()){
+            if (!message.getInspectionPhotoPaths().isEmpty()) {
                 inspectionPhotoUrls = cloudinaryUploadService.uploadFromPaths(message.getInspectionPhotoPaths());
                 cleanupTempFiles(message.getInspectionPhotoPaths());
             }
 
-            if(!message.getCompliedPhotoPaths().isEmpty()){
+            if (!message.getCompliedPhotoPaths().isEmpty()) {
                 compliedPhotoUrls = cloudinaryUploadService.uploadFromPaths(message.getCompliedPhotoPaths());
                 cleanupTempFiles(message.getCompliedPhotoPaths());
             }
 
             InspectionObservationEntity observation = inspectionObservationRepository.findById(message.getInspectionId())
-                    .orElseThrow(()->new ResourceNotFoundException("Observation does not exist."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Observation does not exist."));
 
-
-            for(String url: inspectionPhotoUrls) {
+            for (String url : inspectionPhotoUrls) {
                 observation.getInspectionPhotoUrl().add(url);
             }
 
-            for(String url: compliedPhotoUrls){
+            for (String url : compliedPhotoUrls) {
                 observation.getCompliedPhotoUrl().add(url);
             }
 
             observation.setPhotoUploadStatus("UPLOAD_COMPLETE");
-
             inspectionObservationRepository.save(observation);
 
             log.info("Photo upload complete for inspection id = {}", message.getInspectionId());
 
-        } catch (Exception e) {
-            log.info("Photo upload failed for inspection id = {}", message.getInspectionId());
-            throw e; //rethrow so RabbitMQ triggers retry
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("File size too large")) {
+                // Don't retry - mark as failed and move on
+                log.error("Photo too large for inspection id = {}, marking as failed: {}",
+                        message.getInspectionId(), e.getMessage());
+                try {
+                    InspectionObservationEntity observation = inspectionObservationRepository
+                            .findById(message.getInspectionId()).orElse(null);
+                    if (observation != null) {
+                        observation.setPhotoUploadStatus("UPLOAD_FAILED_FILE_TOO_LARGE");
+                        inspectionObservationRepository.save(observation);
+                    }
+                } catch (Exception dbEx) {
+                    log.error("Failed to update status for inspection id = {}", message.getInspectionId());
+                }
+                // Return normally - RabbitMQ will acknowledge and NOT retry
+                return;
+            }
+            // For other errors, still rethrow (network issues etc. are worth retrying)
+            log.error("Photo upload failed for inspection id = {}", message.getInspectionId());
+            throw e;
         }
     }
 

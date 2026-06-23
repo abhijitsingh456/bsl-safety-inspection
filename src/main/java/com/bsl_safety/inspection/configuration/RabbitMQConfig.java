@@ -1,6 +1,7 @@
 package com.bsl_safety.inspection.configuration;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
@@ -18,9 +19,23 @@ public class RabbitMQConfig {
     //queue where messages sit
     @Bean
     public Queue photoUploadQueue(){
-        return QueueBuilder.durable(PHOTO_UPLOAD_QUEUE) //survives RabbitMQ restart
-                .withArgument("x-dead-letter-exchange", "photo.upload.dlx") //failed messages go here
+        return QueueBuilder.durable(PHOTO_UPLOAD_QUEUE)
+                .withArgument("x-dead-letter-exchange", "photo.upload.dlx")
+                .withArgument("x-dead-letter-routing-key", PHOTO_UPLOAD_QUEUE)
+                .withArgument("x-delivery-limit", 3) // max 3 attempts then → DLQ
+                .withArgument("x-queue-type", "quorum") // required for delivery-limit
                 .build();
+    }
+
+    //To enforce that failed messages go to the DLQ instead of being requeued forever.
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
+        factory.setDefaultRequeueRejected(false); // reject → DLQ, never requeue
+        return factory;
     }
 
     //The exchange receives messages and routes them to queues
