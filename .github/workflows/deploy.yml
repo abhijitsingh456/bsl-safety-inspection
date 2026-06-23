@@ -24,6 +24,17 @@ jobs:
       - name: Build JAR
         run: mvn package -DskipTests --batch-mode
 
+      # Ensure the staging directory exists before SCP runs
+      - name: Prepare staging directory on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_PRODUCTION_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            rm -rf /tmp/sailbslsafety-deploy
+            mkdir -p /tmp/sailbslsafety-deploy
+
       - name: Copy JAR to production server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -42,22 +53,19 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -euo pipefail
-            
-            # Find the freshly-uploaded jar (there will be exactly one)
-            NEW_JAR=$(ls /tmp/sailbslsafety-deploy/*.jar | head -n 1)
+
+            NEW_JAR=$(ls /tmp/sailbslsafety-deploy/*.jar 2>/dev/null | head -n 1)
             if [ -z "$NEW_JAR" ]; then
               echo "::error::No JAR was uploaded"
               exit 1
             fi
             echo "New JAR: $NEW_JAR"
-            
-            # Atomic swap into place
+
             sudo mv -f "$NEW_JAR" /opt/sailbslsafety/app.jar
             rm -rf /tmp/sailbslsafety-deploy
-            
-            # Restart
+
             sudo systemctl restart sailbslsafety
-            
+
             echo "Waiting for app to start..."
             for i in $(seq 1 24); do
               if curl -sf http://localhost:8080/actuator/health > /dev/null; then
@@ -67,7 +75,7 @@ jobs:
               echo "Attempt $i/24 failed, retrying in 5s..."
               sleep 5
             done
-            
+
             echo "::error::App failed to start after 120 seconds"
             sudo journalctl -u sailbslsafety --since "2 minutes ago" --no-pager
             exit 1
