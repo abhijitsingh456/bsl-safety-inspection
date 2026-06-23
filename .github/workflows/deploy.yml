@@ -31,6 +31,7 @@ jobs:
           host: ${{ secrets.EC2_PRODUCTION_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          debug: true
           script: |
             rm -rf /tmp/sailbslsafety-deploy
             mkdir -p /tmp/sailbslsafety-deploy
