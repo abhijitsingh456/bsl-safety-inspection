@@ -17,7 +17,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, prometheus
+  server:
+    port: 8081
+    address: 127.0.0.1
 
     health:
       show-details: never
